@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.mvc.forrest.common.productcondition.ProdCondition;
 import com.mvc.forrest.common.utils.FileNameUtils;
 import com.mvc.forrest.common.utils.FileUtils;
 import com.mvc.forrest.common.validation.ProductUpdateForm;
@@ -162,16 +163,10 @@ public class ProductController {
 	public String updateProductCondition(@RequestParam("prodNo") String prodNo) throws Exception {
 		
 		Product product = productService.getProduct(prodNo);		
+				
+		String changedProdCondition = productService.getChangedStorageCondition(product.getProdCondition());
 		
-		if(product.getProdCondition().equals("물품보관승인신청중")) {
-			product.setProdCondition("입고중");
-		} else if (product.getProdCondition().equals("입고중")){
-			product.setProdCondition("보관중");
-			
-		} else if (product.getProdCondition().equals("출고승인신청중")){
-			product.setProdCondition("출고완료");
-		//보관관련
-		} 
+		product.setProdCondition(changedProdCondition);
 		
 		productService.updateProductCondition(product);
 	
@@ -182,21 +177,18 @@ public class ProductController {
 		// 관리자가 물품의 상태변경 ( 대여 )
 		@RequestMapping("updateRentalProductCondition")
 		public String updateRentalProductCondition(@RequestParam("prodNo") String prodNo, @RequestParam("tranNo") String tranNo) throws Exception {
+			
 			Product product = productService.getProduct(prodNo);		
             Rental rental = rentalService.getRental(tranNo);
+                                    
+            String changedProdCondition = productService.getChangedRentalCondition(product.getProdCondition());
             
-            System.out.println("tranNo:"+tranNo);
+            product.setProdCondition(changedProdCondition);
             
-			//대여관련
-			 if(product.getProdCondition().equals("물품대여승인신청중")) {
-				product.setProdCondition("배송중");
-			} else if(product.getProdCondition().equals("배송중")) {
-				product.setProdCondition("대여중");
-			} else if(product.getProdCondition().equals("대여중")) {
-				product.setProdCondition("보관중");
-				rental.setComplete(1);
+            if(product.getProdCondition().equals(ProdCondition.STORAGE.getValue())) {
+            	rental.setComplete(1);
 				rentalService.updateComplete(rental);
-			} 
+            }
 			
 			productService.updateProductCondition(product);
 			
@@ -210,24 +202,13 @@ public class ProductController {
 	@RequestMapping("updateProductAllCondition")
 	public String updateProductAllCondition(@RequestParam("prodNo") String[] prodNo) throws Exception {
 		
-		//prodNo를 통해 productCondition배열에 값을 셋팅
-		String[] productCondition =  new String[prodNo.length];
-		for(int i=0; i<prodNo.length; i++) {
-			productCondition[i] = productService.getProduct(prodNo[i]).getProdCondition();
-		}
-		
 		for(int i=0; i<prodNo.length; i++) {
 			
 			Product product = productService.getProduct(prodNo[i]);
-	
-			if(productCondition[i].equals("물품보관승인신청중")) {
-				product.setProdCondition("입고중");
-			} else if (productCondition[i].equals("입고중")){
-				product.setProdCondition("보관중");
-			} else if (productCondition[i].equals("출고승인신청중")){
-				product.setProdCondition("출고완료");
-			}
-			//보관관련
+			
+			String changedProdCondition = productService.getChangedStorageCondition(product.getProdCondition());
+			
+			product.setProdCondition(changedProdCondition);
 	
 			productService.updateProductCondition(product);
 		}
@@ -237,58 +218,46 @@ public class ProductController {
 	
 	
 		//관리자가 물품상태를 일괄변경 ( 대여 )
-		@RequestMapping("updateRentalProductAllCondition")
-		public String updateRentalProductAllCondition(@RequestParam("tranNo") String[] tranNo) throws Exception {
-			
-			 String[] prodNo = new String[tranNo.length];
-			 for(int i=0; i<tranNo.length; i++) {
-				 prodNo[i] = rentalService.getRental(tranNo[i]).getProdNo();
-				}
-			 
-			 String[] productCondition =  new String[prodNo.length];
-				for(int i=0; i<prodNo.length; i++) {
-					productCondition[i] = productService.getProduct(prodNo[i]).getProdCondition();
-				}
-			
-			
-			for(int i=0; i<prodNo.length; i++) {
+	@RequestMapping("updateRentalProductAllCondition")
+	public String updateRentalProductAllCondition(@RequestParam("tranNo") String[] tranNo) throws Exception {
+		
+		int length = tranNo.length;
+						
+		String[] prodNo = new String[length];
+		
+		for(int i=0; i<length; i++) {
+			prodNo[i] = rentalService.getRental(tranNo[i]).getProdNo();
+		}
+					
+		for(int i=0; i<prodNo.length; i++) {
 				
-				Product product = productService.getProduct(prodNo[i]);
-				Rental rental = rentalService.getRental(tranNo[i]);
+			Product product = productService.getProduct(prodNo[i]);
+			Rental rental = rentalService.getRental(tranNo[i]);
 			
-				//대여관련
-				
-				if(productCondition[i].equals("물품대여승인신청중")) {
-					product.setProdCondition("배송중");
-				} else if(productCondition[i].equals("배송중")) {
-					product.setProdCondition("대여중");
-				} else if(product.getProdCondition().equals("대여중")) {
-					product.setProdCondition("보관중");
-					rental.setComplete(1);
-					rentalService.updateComplete(rental);
-				} 
+			String changedProdCondition = productService.getChangedRentalCondition(product.getProdCondition());
+			
+			product.setProdCondition(changedProdCondition);
+			
+			if(product.getProdCondition().equals(ProdCondition.STORAGE.getValue())) {
+            	rental.setComplete(1);
+				rentalService.updateComplete(rental);
+            }
 			
 				productService.updateProductCondition(product);
-			}
+		}
 			
 			return "redirect:/rental/listRentalForAdmin";
-		}
+	}
 	
 	//유저가 물품보관승인신청을 취소하거나 보관중인 물품을 되돌려받을때 사용
 	@RequestMapping("cancelProduct")
 	public String cancelProduct (@RequestParam("prodNo") String prodNo) throws Exception {
 		
 		Product product = productService.getProduct(prodNo);
-
-		if(product.getProdCondition().equals("물품보관승인신청중")) {
-			product.setProdCondition("취소완료");
-			
-		} else if(product.getProdCondition().equals("보관중")) {
-			product.setProdCondition("출고승인신청중");
-			
-		} else if(product.getProdCondition().equals("출고승인신청중")) {
-			product.setProdCondition("보관중");
-		}
+		
+		String changedProdCondition = productService.getCanceledProdCondition(product.getProdCondition());
+		
+		product.setProdCondition(changedProdCondition);
 		
 		productService.updateProductCondition(product);
 		

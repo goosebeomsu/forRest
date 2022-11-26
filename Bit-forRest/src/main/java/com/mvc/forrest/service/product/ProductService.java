@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
+import com.mvc.forrest.common.productcondition.ProdCondition;
 import com.mvc.forrest.dao.product.ProductDAO;
 import com.mvc.forrest.service.domain.Product;
 import com.mvc.forrest.service.domain.Search;
@@ -102,6 +103,57 @@ public class ProductService {
 		productDAO.updateRentalCounting(product);
 
 	}
+	
+	//변경된 보관관련 물품상태를 리턴
+	public String getChangedStorageCondition(String prodCondition) {
+			
+		if(prodCondition.equals(ProdCondition.APPLYING_STORAGE_APPROVAL.getValue())) {
+			return ProdCondition.RECEIVING_WAREHOUSE.getValue();
+		}
+		if (prodCondition.equals(ProdCondition.RECEIVING_WAREHOUSE.getValue())){
+			return ProdCondition.STORAGE.getValue();
+		}
+		if(prodCondition.equals(ProdCondition.STORAGE.getValue())){
+			return ProdCondition.RETURN_COMPLETE.getValue();
+		} 
+			
+		throw new RuntimeException("invalid StorageCondition: " + prodCondition);
+			
+		}
+	
+	//변경된 대여관련 물품상태를 리턴
+	public String getChangedRentalCondition(String prodCondition) {
+			
+		if(prodCondition.equals(ProdCondition.APPLYING_RENTAL_APPROVAL.getValue())) {
+			return ProdCondition.DELIVERY.getValue();
+		}
+		if (prodCondition.equals(ProdCondition.DELIVERY.getValue())){
+			return ProdCondition.RENTAL.getValue();
+		}
+		if(prodCondition.equals(ProdCondition.RENTAL.getValue())){
+			return ProdCondition.STORAGE.getValue();
+		} 
+			
+		throw new RuntimeException("invalid RentalCondition: " + prodCondition);
+			
+		}
+	
+	//변경된 대여관련 물품상태를 리턴
+	public String getCanceledProdCondition(String prodCondition) {
+			
+		if(prodCondition.equals(ProdCondition.APPLYING_STORAGE_APPROVAL.getValue())) {
+			return ProdCondition.CANCEL_COMPLETE.getValue();
+		}
+		if (prodCondition.equals(ProdCondition.STORAGE.getValue())){
+			return ProdCondition.APPLYING_RETURN_APPROVAL.getValue();
+		}
+		if(prodCondition.equals(ProdCondition.APPLYING_RETURN_APPROVAL.getValue())){
+			return ProdCondition.STORAGE.getValue();
+		} 
+			
+		throw new RuntimeException("invalid CanceledProdCondition: " + prodCondition);
+			
+		}
 	
 	public Product setParam(Product product, String userId, String prodNo, String prodImg) {
 		product.setUserId(userId);
